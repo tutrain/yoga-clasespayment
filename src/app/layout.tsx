@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tayal Yoga Class - Registration",
-  description: "Register for Tayal Yoga Class premium sessions. Choose your subscription plan and start your yoga journey today.",
+  title: "Yoga with Renu Tayal - Registration",
+  description: "Register for Yoga with Renu Tayal premium sessions. Choose your subscription plan and start your yoga journey today.",
 };
 
 export default function RootLayout({

@@ -64,7 +64,7 @@ function FailureContent() {
         </div>
 
         <p className="text-center text-xs text-teal-800 opacity-60 mt-4">
-          Powered by Tayal Yoga Class
+          Powered by Yoga with Renu Tayal
         </p>
       </div>
     </div>

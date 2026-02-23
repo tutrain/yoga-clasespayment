@@ -23,7 +23,7 @@ function SuccessContent() {
 
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Payment Successful!</h1>
           <p className="text-gray-500 mb-6">
-            Welcome to Tayal Yoga Class! Your registration is confirmed.
+            Welcome to Yoga with Renu Tayal! Your registration is confirmed.
           </p>
 
           {/* Transaction Details */}
@@ -61,7 +61,7 @@ function SuccessContent() {
         </div>
 
         <p className="text-center text-xs text-teal-800 opacity-60 mt-4">
-          Powered by Tayal Yoga Class
+          Powered by Yoga with Renu Tayal
         </p>
       </div>
     </div>
