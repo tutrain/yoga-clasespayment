@@ -46,40 +46,80 @@ export async function POST(request: NextRequest) {
       timeZone: "Asia/Kolkata",
     });
 
-    // Ensure sheet has headers
-    await ensureSheetHeaders();
+    // Step 1: Ensure sheet has headers
+    console.log("[Register] Step 1: Ensuring sheet headers...");
+    try {
+      await ensureSheetHeaders();
+      console.log("[Register] Step 1: Sheet headers OK");
+    } catch (sheetHeaderError) {
+      console.error("[Register] Step 1 FAILED - ensureSheetHeaders:", sheetHeaderError);
+      const errMsg = sheetHeaderError instanceof Error ? sheetHeaderError.message : String(sheetHeaderError);
+      return NextResponse.json(
+        { error: `Google Sheets header check failed: ${errMsg}` },
+        { status: 500 }
+      );
+    }
 
-    // Save to Google Sheet with PENDING status
-    await appendRegistration({
-      timestamp,
-      fullName: fullName.trim(),
-      whatsapp: `+91${whatsapp}`,
-      plan: selectedPlan.name,
-      amount: selectedPlan.amount,
-      paymentStatus: "PENDING",
-      transactionId: "",
-      orderId,
-    });
+    // Step 2: Save to Google Sheet with PENDING status
+    console.log("[Register] Step 2: Appending registration to sheet...");
+    try {
+      await appendRegistration({
+        timestamp,
+        fullName: fullName.trim(),
+        whatsapp: `+91${whatsapp}`,
+        plan: selectedPlan.name,
+        amount: selectedPlan.amount,
+        paymentStatus: "PENDING",
+        transactionId: "",
+        orderId,
+      });
+      console.log("[Register] Step 2: Registration appended OK");
+    } catch (appendError) {
+      console.error("[Register] Step 2 FAILED - appendRegistration:", appendError);
+      const errMsg = appendError instanceof Error ? appendError.message : String(appendError);
+      return NextResponse.json(
+        { error: `Google Sheets write failed: ${errMsg}` },
+        { status: 500 }
+      );
+    }
 
     // Determine callback URL
     const host = request.headers.get("host") || "localhost:3000";
     const protocol = host.includes("localhost") ? "http" : "https";
     const callbackUrl = `${protocol}://${host}/api/paytm-callback`;
 
-    // Initiate Paytm transaction
-    const txnResult = await initiateTransaction(
-      orderId,
-      selectedPlan.amount,
-      customerId,
-      callbackUrl
-    );
+    // Step 3: Initiate Paytm transaction
+    console.log("[Register] Step 3: Initiating Paytm transaction...");
+    console.log("[Register] MID:", process.env.PAYTM_MID ? "SET" : "MISSING");
+    console.log("[Register] MERCHANT_KEY:", process.env.PAYTM_MERCHANT_KEY ? "SET" : "MISSING");
+    console.log("[Register] Callback URL:", callbackUrl);
 
-    if (!txnResult) {
+    let txnResult;
+    try {
+      txnResult = await initiateTransaction(
+        orderId,
+        selectedPlan.amount,
+        customerId,
+        callbackUrl
+      );
+    } catch (paytmError) {
+      console.error("[Register] Step 3 FAILED - initiateTransaction threw:", paytmError);
+      const errMsg = paytmError instanceof Error ? paytmError.message : String(paytmError);
       return NextResponse.json(
-        { error: "Failed to initiate payment. Please try again." },
+        { error: `Paytm transaction initiation error: ${errMsg}` },
         { status: 500 }
       );
     }
+
+    if (!txnResult) {
+      console.error("[Register] Step 3 FAILED - initiateTransaction returned null (check Paytm logs above)");
+      return NextResponse.json(
+        { error: "Paytm rejected the transaction. Check server logs for details." },
+        { status: 500 }
+      );
+    }
+
+    console.log("[Register] Step 3: Paytm transaction initiated OK, txnToken received");
 
     // Return the Paytm redirect URL and form params
     const paytmUrl = getPaytmRedirectUrl(orderId, txnResult.txnToken);
@@ -92,9 +132,10 @@ export async function POST(request: NextRequest) {
       orderId,
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("Registration error (uncaught):", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal server error. Please try again later." },
+      { error: `Internal server error: ${errMsg}` },
       { status: 500 }
     );
   }

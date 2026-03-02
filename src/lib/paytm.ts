@@ -55,6 +55,9 @@ export async function initiateTransaction(
   // Call Paytm's Initiate Transaction API
   const url = `${paytmHost}/theia/api/v1/initiateTransaction?mid=${PAYTM_MID}&orderId=${orderId}`;
 
+  console.log("[Paytm] Calling initiateTransaction API:", url);
+  console.log("[Paytm] Request body:", JSON.stringify(paytmParams, null, 2));
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -63,7 +66,11 @@ export async function initiateTransaction(
     body: JSON.stringify(paytmParams),
   });
 
+  console.log("[Paytm] Response status:", response.status, response.statusText);
+
   const data = await response.json();
+
+  console.log("[Paytm] Response body:", JSON.stringify(data, null, 2));
 
   if (data.body?.resultInfo?.resultStatus === "S") {
     return {
@@ -72,7 +79,9 @@ export async function initiateTransaction(
     };
   }
 
-  console.error("Paytm initiate transaction failed:", data);
+  console.error("[Paytm] initiateTransaction REJECTED. resultStatus:", data.body?.resultInfo?.resultStatus);
+  console.error("[Paytm] resultCode:", data.body?.resultInfo?.resultCode);
+  console.error("[Paytm] resultMsg:", data.body?.resultInfo?.resultMsg);
   return null;
 }
 
