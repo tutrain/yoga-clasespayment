@@ -18,7 +18,8 @@ function getSheets() {
 }
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID!;
-const SHEET_NAME = process.env.GOOGLE_SHEET_NAME || "Sheet1";
+const SHEET_NAME = process.env.GOOGLE_SHEET_NAME || "Payment Form";
+console.log("[GoogleSheets] Using sheet name:", SHEET_NAME);
 
 export interface RegistrationRow {
   timestamp: string;
