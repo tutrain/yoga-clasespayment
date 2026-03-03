@@ -22,8 +22,11 @@ function SuccessContent() {
           </div>
 
           <h1 className="text-2xl font-bold text-gray-800 mb-2">Payment Successful!</h1>
+          <p className="text-gray-500 mb-6 font-medium text-lg text-teal-600">
+            Thank you! Welcome to the team!
+          </p>
           <p className="text-gray-500 mb-6">
-            Welcome to Yoga with Renu Tayal! Your registration is confirmed.
+            Your registration is confirmed for Yoga with Renu Tayal.
           </p>
 
           {/* Transaction Details */}
@@ -56,7 +59,7 @@ function SuccessContent() {
             href="/"
             className="inline-block w-full py-3 bg-teal-500 text-white font-semibold rounded-xl hover:bg-teal-600 transition-colors"
           >
-            Back to Home
+            Refresh for New Payment
           </Link>
         </div>
 

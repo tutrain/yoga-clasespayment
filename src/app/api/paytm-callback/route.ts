@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     });
 
     const orderId = params.ORDERID;
-    
+
     if (!orderId) {
       return NextResponse.redirect(
         new URL("/failure?reason=missing_order", request.url)
@@ -34,16 +34,22 @@ export async function POST(request: NextRequest) {
         )
       );
     } else {
+      // If user clicks back or cancels, RESPCODE is often checking here
+      const respCode = params.RESPCODE || params.RESPMSG || "";
+      const isCancelled = respCode === "0145" || respCode === "810" || txnStatus.status === "TXN_FAILURE";
+
       // Update Google Sheet with failure status
       await updatePaymentStatus(
         orderId,
-        txnStatus.status === "PENDING" ? "PENDING" : "FAILED",
+        txnStatus.status === "PENDING" ? "PENDING" : (isCancelled ? "CANCELLED" : "FAILED"),
         txnStatus.txnId || "N/A"
       );
 
+      const reasonStr = isCancelled ? "cancelled" : txnStatus.status;
+
       return NextResponse.redirect(
         new URL(
-          `/failure?orderId=${orderId}&status=${txnStatus.status}`,
+          `/failure?orderId=${orderId}&reason=${reasonStr}`,
           request.url
         )
       );

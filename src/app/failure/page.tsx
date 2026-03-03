@@ -11,6 +11,7 @@ function FailureContent() {
   const reason = searchParams.get("reason") || "";
 
   const getMessage = () => {
+    if (reason === "cancelled") return "Payment is cancelled. Please refresh the page for a new payment.";
     if (reason === "missing_order") return "Order information was missing.";
     if (reason === "server_error") return "A server error occurred while processing your payment.";
     if (status === "PENDING") return "Your payment is still being processed. Please wait a few minutes and check again.";
@@ -29,7 +30,7 @@ function FailureContent() {
           </div>
 
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            {status === "PENDING" ? "Payment Pending" : "Payment Failed"}
+            {reason === "cancelled" ? "Payment Cancelled" : status === "PENDING" ? "Payment Pending" : "Payment Failed"}
           </h1>
           <p className="text-gray-500 mb-6">{getMessage()}</p>
 
@@ -40,7 +41,7 @@ function FailureContent() {
                 <span className="text-gray-500">Order ID</span>
                 <span className="text-gray-700 font-medium text-xs">{orderId}</span>
               </div>
-              {status && (
+              {status && reason !== "cancelled" && (
                 <div className="flex justify-between text-sm mt-2">
                   <span className="text-gray-500">Status</span>
                   <span className={`font-medium ${status === "PENDING" ? "text-amber-600" : "text-red-600"}`}>
@@ -55,11 +56,13 @@ function FailureContent() {
             href="/"
             className="inline-block w-full py-3 bg-teal-500 text-white font-semibold rounded-xl hover:bg-teal-600 transition-colors"
           >
-            Try Again
+            Refresh for New Payment
           </Link>
 
           <p className="text-sm text-gray-400 mt-4">
-            If money was deducted, it will be refunded within 5-7 business days.
+            {reason === "cancelled"
+              ? "Your payment was cancelled. No money was deducted."
+              : "If money was deducted, it will be refunded within 5-7 business days."}
           </p>
         </div>
 
