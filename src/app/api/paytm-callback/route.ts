@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
 
     if (!orderId) {
       return NextResponse.redirect(
-        new URL("/failure?reason=missing_order", request.url)
+        new URL("/failure?reason=missing_order", request.url),
+        { status: 303 }
       );
     }
 
@@ -31,7 +32,8 @@ export async function POST(request: NextRequest) {
         new URL(
           `/success?orderId=${orderId}&txnId=${txnStatus.txnId}&amount=${txnStatus.txnAmount}`,
           request.url
-        )
+        ),
+        { status: 303 }
       );
     } else {
       // If user clicks back or cancels, RESPCODE is often checking here
@@ -51,13 +53,15 @@ export async function POST(request: NextRequest) {
         new URL(
           `/failure?orderId=${orderId}&reason=${reasonStr}`,
           request.url
-        )
+        ),
+        { status: 303 }
       );
     }
   } catch (error) {
     console.error("Paytm callback error:", error);
     return NextResponse.redirect(
-      new URL("/failure?reason=server_error", request.url)
+      new URL("/failure?reason=server_error", request.url),
+      { status: 303 }
     );
   }
 }
