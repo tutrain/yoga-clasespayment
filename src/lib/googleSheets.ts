@@ -18,7 +18,9 @@ function getSheets() {
 }
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID!;
-const RAW_SHEET_NAME = process.env.GOOGLE_SHEET_NAME || "Payment Form";
+// Override Vercel's env variable if it is incorrectly set to "Sheet1"
+const envSheetName = process.env.GOOGLE_SHEET_NAME;
+const RAW_SHEET_NAME = (envSheetName && envSheetName !== "Sheet1") ? envSheetName : "Payment Form";
 // Google Sheets API requires single-quoting sheet names that contain spaces
 const SHEET_NAME = RAW_SHEET_NAME.includes(" ") ? `'${RAW_SHEET_NAME}'` : RAW_SHEET_NAME;
 console.log("[GoogleSheets] GOOGLE_SHEET_NAME env:", JSON.stringify(process.env.GOOGLE_SHEET_NAME));
