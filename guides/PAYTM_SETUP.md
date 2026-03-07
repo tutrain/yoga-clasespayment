@@ -57,16 +57,16 @@ The callback URL is where Paytm sends the user after payment (success or failure
 1. In the Paytm Dashboard, go to **Developer Settings**
 2. Look for **Callback URL** or **Webhook Settings**
 3. Add your callback URL:
-   - **For production:** `https://your-domain.vercel.app/api/paytm-callback`
+   - **For production:** `https://tayal-yoga-class.web.app/api/paytm-callback`
    - **For local testing:** `http://localhost:3000/api/paytm-callback` (may not work — use ngrok for local testing)
 
-> **Note:** Replace `your-domain.vercel.app` with your actual Vercel deployment URL.
+> **Note:** Replace `tayal-yoga-class.web.app` with your actual Firebase Hosting URL if using a custom domain.
 
 ---
 
 ## Step 4: Set Environment Variables
 
-Add these to your `.env.local` file (for local development) and to Vercel (for production):
+Add these to your `.env.local` file (for local development) and Firebase env config (for production):
 
 ### Required Variables:
 
@@ -142,10 +142,10 @@ Before going live, test the full flow:
 
 When testing is complete:
 
-1. Change `PAYTM_ENVIRONMENT=production` in Vercel environment variables
+1. Change `PAYTM_ENVIRONMENT=production` in your `.env.local` and Firebase env config
 2. Use your **production** MID and Merchant Key
-3. Ensure callback URL is set to your Vercel domain: `https://your-domain.vercel.app/api/paytm-callback`
-4. Deploy to Vercel
+3. Ensure callback URL is set to your Firebase domain: `https://tayal-yoga-class.web.app/api/paytm-callback`
+4. Deploy to Firebase (`firebase deploy`)
 5. Do one real test payment with ₹1 (if Paytm allows custom amounts) or with the actual plan amount
 6. Verify the entire flow works
 
@@ -191,5 +191,5 @@ Since you already have a Paytm account for your website:
 
 - **Never expose `PAYTM_MERCHANT_KEY`** in frontend code, Git, or browser console
 - Always verify payments on the **server side** using the Order Status API (don't trust frontend data)
-- Use **HTTPS** for all callback URLs (Vercel provides this automatically)
+- Use **HTTPS** for all callback URLs (Firebase Hosting provides this automatically)
 - Monitor your Paytm dashboard regularly for any suspicious transactions

@@ -1,24 +1,26 @@
 # Tayal Yoga Class — Registration & Payment Portal
 
-A secure registration form for Tayal Yoga Class that collects student information, processes payments via Paytm, and saves registrations to Google Sheets.
+A secure registration form for Tayal Yoga Class that collects student information, processes payments via Paytm, sends WhatsApp confirmations via AiSensy, and saves registrations to Google Sheets.
 
 ## Features
 
 - **Clean UI** — Modern checkout form with teal/green theme matching Tayal Yoga Class branding
 - **Two Plans** — ₹999 (1 Month) and ₹1999 (3 Months) subscriptions
 - **Paytm Payments** — Integrated Paytm Payment Gateway (UPI, Cards, Netbanking, Wallet)
+- **WhatsApp Notifications** — Automatic payment confirmation via AiSensy WhatsApp API
 - **Google Sheets** — Automatic registration logging with payment status tracking
 - **Responsive** — Works on mobile, tablet, and desktop
-- **Deployed on Vercel** — Fast, reliable hosting with auto-deploy from GitHub
+- **Hosted on Firebase** — Fast, reliable hosting with global CDN
 
 ## Tech Stack
 
 - **Next.js 16** (App Router) — React framework with server-side API routes
 - **Tailwind CSS** — Utility-first CSS framework
 - **TypeScript** — Type-safe code
+- **Firebase Hosting** — Hosting & deployment with Cloud Functions for SSR
 - **Google Sheets API** — Data storage via service account
 - **Paytm Payment Gateway** — Payment processing
-- **Vercel** — Hosting & deployment
+- **AiSensy** — WhatsApp Business API for notifications
 
 ## Quick Start
 
@@ -39,6 +41,7 @@ cp .env.example .env.local
 Edit `.env.local` with your actual credentials. See the setup guides for details:
 - [Google Sheets Setup](guides/GOOGLE_SHEETS_SETUP.md)
 - [Paytm Setup](guides/PAYTM_SETUP.md)
+- [Firebase Deployment](guides/FIREBASE_DEPLOYMENT.md)
 
 ### 3. Run Locally
 
@@ -50,7 +53,7 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ### 4. Deploy
 
-See [Deployment Guide](guides/DEPLOYMENT.md) for Vercel deployment instructions.
+See [Firebase Deployment Guide](guides/FIREBASE_DEPLOYMENT.md) for deployment instructions.
 
 ## Project Structure
 
@@ -64,14 +67,16 @@ src/
 │   ├── failure/page.tsx            # Payment failure page
 │   └── api/
 │       ├── register/route.ts       # Registration + payment initiation API
-│       └── paytm-callback/route.ts # Paytm payment callback handler
+│       └── paytm-callback/route.ts # Paytm payment callback handler + WhatsApp
 ├── lib/
 │   ├── googleSheets.ts             # Google Sheets API helper
-│   └── paytm.ts                    # Paytm checksum & transaction helpers
+│   ├── paytm.ts                    # Paytm checksum & transaction helpers
+│   ├── aisensy.ts                  # AiSensy WhatsApp API helper
+│   └── firebase.ts                 # Firebase client SDK initialization
 guides/
 ├── GOOGLE_SHEETS_SETUP.md          # Step-by-step Google Sheets setup
 ├── PAYTM_SETUP.md                  # Step-by-step Paytm setup
-└── DEPLOYMENT.md                   # Vercel deployment guide
+└── FIREBASE_DEPLOYMENT.md          # Firebase deployment guide
 ```
 
 ## Environment Variables
@@ -86,6 +91,8 @@ guides/
 | `PAYTM_MERCHANT_KEY` | Paytm Merchant Key (secret) |
 | `PAYTM_WEBSITE` | Paytm website name (default: `DEFAULT`) |
 | `PAYTM_ENVIRONMENT` | `production` or `staging` |
+| `AISENSY_API_KEY` | AiSensy API Campaign Key |
+| `AISENSY_PAYMENT_SUCCESS_CAMPAIGN` | AiSensy campaign name for payment success |
 
 ## Payment Flow
 
@@ -95,7 +102,8 @@ guides/
 4. Paytm transaction initiated → user redirected to Paytm
 5. User completes payment
 6. Paytm callback → server verifies → updates Google Sheet
-7. User sees success/failure page
+7. WhatsApp payment confirmation sent via AiSensy
+8. User sees success/failure page
 
 ## License
 

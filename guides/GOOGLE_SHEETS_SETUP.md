@@ -101,7 +101,7 @@ You need two values from this file:
 
 ## Step 7: Set Environment Variables
 
-You need to set 3 environment variables (in `.env.local` for local dev, or in Vercel dashboard for production):
+You need to set 3 environment variables (in `.env.local` for local dev, or using Firebase env config for production):
 
 ### `GOOGLE_SERVICE_ACCOUNT_EMAIL`
 Copy the `client_email` value from the JSON key file:
@@ -119,7 +119,7 @@ Copy the `private_key` value from the JSON key file. **Important formatting note
 GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBg...(your key here)...\n-----END PRIVATE KEY-----\n"
 ```
 
-> **For Vercel:** When adding the private key in Vercel's environment variables settings, paste the key value **without quotes**. Vercel handles the formatting.
+> **For Firebase:** When deploying, ensure the private key is properly formatted in the `.env` file used by Firebase Functions.
 
 ### `GOOGLE_SPREADSHEET_ID`
 The ID you copied from the spreadsheet URL in Step 1:

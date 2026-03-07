@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { appendRegistration, ensureSheetHeaders } from "@/lib/googleSheets";
+import { ensurePaymentHeaders, appendPayment } from "@/lib/googleSheets";
 import {
   initiateTransaction,
   getPaytmRedirectUrl,
   buildPaytmFormParams,
 } from "@/lib/paytm";
+import { nowIST } from "@/lib/linkGenerator";
 
 const VALID_PLANS: Record<string, { name: string; amount: number }> = {
   "1month": { name: "1 Month Subscription", amount: 999 },
   "3months": { name: "3 Months Subscription", amount: 1999 },
+  "6months": { name: "6 Months Subscription", amount: 2999 },
+  "12months": { name: "12 Months Subscription", amount: 3999 },
 };
 
 export async function POST(request: NextRequest) {
@@ -18,7 +21,11 @@ export async function POST(request: NextRequest) {
     const { fullName, whatsapp, plan } = body;
 
     // Validation
-    if (!fullName || typeof fullName !== "string" || fullName.trim().length < 2) {
+    if (
+      !fullName ||
+      typeof fullName !== "string" ||
+      fullName.trim().length < 2
+    ) {
       return NextResponse.json(
         { error: "Please enter a valid full name" },
         { status: 400 }
@@ -42,28 +49,29 @@ export async function POST(request: NextRequest) {
     const selectedPlan = VALID_PLANS[plan];
     const orderId = `TAYAL_${Date.now()}_${uuidv4().slice(0, 8).toUpperCase()}`;
     const customerId = `CUST_${whatsapp}`;
-    const timestamp = new Date().toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
-    });
+    const timestamp = nowIST();
 
     // Step 1: Ensure sheet has headers
     console.log("[Register] Step 1: Ensuring sheet headers...");
     try {
-      await ensureSheetHeaders();
+      await ensurePaymentHeaders();
       console.log("[Register] Step 1: Sheet headers OK");
     } catch (sheetHeaderError) {
-      console.error("[Register] Step 1 FAILED - ensureSheetHeaders:", sheetHeaderError);
-      const errMsg = sheetHeaderError instanceof Error ? sheetHeaderError.message : String(sheetHeaderError);
+      console.error("[Register] Step 1 FAILED:", sheetHeaderError);
+      const errMsg =
+        sheetHeaderError instanceof Error
+          ? sheetHeaderError.message
+          : String(sheetHeaderError);
       return NextResponse.json(
         { error: `Google Sheets header check failed: ${errMsg}` },
         { status: 500 }
       );
     }
 
-    // Step 2: Save to Google Sheet with PENDING status
-    console.log("[Register] Step 2: Appending registration to sheet...");
+    // Step 2: Save to PaymentInfo sheet with PENDING status
+    console.log("[Register] Step 2: Appending payment to sheet...");
     try {
-      await appendRegistration({
+      await appendPayment({
         timestamp,
         fullName: fullName.trim(),
         whatsapp: `+91${whatsapp}`,
@@ -73,10 +81,13 @@ export async function POST(request: NextRequest) {
         transactionId: "",
         orderId,
       });
-      console.log("[Register] Step 2: Registration appended OK");
+      console.log("[Register] Step 2: Payment appended OK");
     } catch (appendError) {
-      console.error("[Register] Step 2 FAILED - appendRegistration:", appendError);
-      const errMsg = appendError instanceof Error ? appendError.message : String(appendError);
+      console.error("[Register] Step 2 FAILED:", appendError);
+      const errMsg =
+        appendError instanceof Error
+          ? appendError.message
+          : String(appendError);
       return NextResponse.json(
         { error: `Google Sheets write failed: ${errMsg}` },
         { status: 500 }
@@ -90,9 +101,6 @@ export async function POST(request: NextRequest) {
 
     // Step 3: Initiate Paytm transaction
     console.log("[Register] Step 3: Initiating Paytm transaction...");
-    console.log("[Register] MID:", process.env.PAYTM_MID ? "SET" : "MISSING");
-    console.log("[Register] MERCHANT_KEY:", process.env.PAYTM_MERCHANT_KEY ? "SET" : "MISSING");
-    console.log("[Register] Callback URL:", callbackUrl);
 
     let txnResult;
     try {
@@ -103,8 +111,11 @@ export async function POST(request: NextRequest) {
         callbackUrl
       );
     } catch (paytmError) {
-      console.error("[Register] Step 3 FAILED - initiateTransaction threw:", paytmError);
-      const errMsg = paytmError instanceof Error ? paytmError.message : String(paytmError);
+      console.error("[Register] Step 3 FAILED:", paytmError);
+      const errMsg =
+        paytmError instanceof Error
+          ? paytmError.message
+          : String(paytmError);
       return NextResponse.json(
         { error: `Paytm transaction initiation error: ${errMsg}` },
         { status: 500 }
@@ -112,16 +123,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (!txnResult) {
-      console.error("[Register] Step 3 FAILED - initiateTransaction returned null (check Paytm logs above)");
+      console.error("[Register] Step 3 FAILED - txnResult is null");
       return NextResponse.json(
-        { error: "Paytm rejected the transaction. Check server logs for details." },
+        {
+          error:
+            "Paytm rejected the transaction. Check server logs for details.",
+        },
         { status: 500 }
       );
     }
 
-    console.log("[Register] Step 3: Paytm transaction initiated OK, txnToken received");
+    console.log("[Register] Step 3: Paytm transaction initiated OK");
 
-    // Return the Paytm redirect URL and form params
     const paytmUrl = getPaytmRedirectUrl(orderId, txnResult.txnToken);
     const params = buildPaytmFormParams(orderId, txnResult.txnToken);
 
