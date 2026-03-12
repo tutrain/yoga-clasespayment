@@ -123,8 +123,10 @@ export async function POST(request: NextRequest) {
         });
 
         // Send WhatsApp confirmation (fire-and-forget)
+        // AiSensy requires 91XXXXXXXXXX format (no + prefix)
+        const aisensyPhone = phone.replace(/^\+/, "");
         sendPaymentConfirmation(
-          phone,
+          aisensyPhone,
           registration.fullName,
           registration.plan,
           endDate,

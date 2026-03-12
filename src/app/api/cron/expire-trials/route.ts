@@ -44,7 +44,9 @@ export async function GET(request: NextRequest) {
                 expiredCount++;
 
                 // Send expiry notification (fire-and-forget)
-                sendTrialExpired(row.whatsapp, row.fullName, paymentLink).catch(
+                // AiSensy requires 91XXXXXXXXXX format (no + prefix)
+                const aisensyPhone = row.whatsapp.replace(/^\+/, "");
+                sendTrialExpired(aisensyPhone, row.fullName, paymentLink).catch(
                     (err) =>
                         console.error(
                             `[ExpireTrials] WhatsApp failed for ${row.whatsapp}:`,

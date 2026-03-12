@@ -16,6 +16,11 @@ import {
     sendPaymentReminder,
 } from "@/lib/aisensy";
 
+/** Strip + prefix from phone — AiSensy needs 91XXXXXXXXXX, not +91XXXXXXXXXX */
+function toAiSensyPhone(phone: string): string {
+    return phone.replace(/^\+/, "");
+}
+
 /**
  * GET /api/cron/send-messages
  *
@@ -78,25 +83,25 @@ export async function GET(request: NextRequest) {
 
             // Day 1–7: Send daily session reminder (with Zoom link)
             if (dayNumber >= 1 && dayNumber <= 7) {
-                await sendDailySessionLink(row.whatsapp, row.fullName, today, joinLink);
+                await sendDailySessionLink(toAiSensyPhone(row.whatsapp), row.fullName, today, joinLink);
                 freeTrialSent++;
             }
 
             // Day 3: Mid-trial nudge (purchase offer)
             if (dayNumber === 3) {
-                await sendMidTrialNudge(row.whatsapp, row.fullName, baseUrl);
+                await sendMidTrialNudge(toAiSensyPhone(row.whatsapp), row.fullName, baseUrl);
                 nudgesSent++;
             }
 
             // Day 6: Urgency warning (trial ends tomorrow)
             if (dayNumber === 6) {
-                await sendTrialExpiryWarning(row.whatsapp, row.fullName, baseUrl);
+                await sendTrialExpiryWarning(toAiSensyPhone(row.whatsapp), row.fullName, baseUrl);
                 nudgesSent++;
             }
 
             // Day 7: Last day message (last free session + purchase CTA)
             if (dayNumber === 7) {
-                await sendFreeTrialLastDay(row.whatsapp, row.fullName, joinLink, baseUrl);
+                await sendFreeTrialLastDay(toAiSensyPhone(row.whatsapp), row.fullName, joinLink, baseUrl);
                 nudgesSent++;
             }
 
@@ -123,7 +128,7 @@ export async function GET(request: NextRequest) {
 
             // Day 8–10: Send expired nudge (NO Zoom link)
             if (dayNumber >= 8 && dayNumber <= 10) {
-                await sendTrialExpired(row.whatsapp, row.fullName, baseUrl);
+                await sendTrialExpired(toAiSensyPhone(row.whatsapp), row.fullName, baseUrl);
                 expiredSent++;
             }
         }
@@ -137,7 +142,7 @@ export async function GET(request: NextRequest) {
             const joinLink = `${baseUrl}/join/${row.customLinkId}`;
 
             // Daily session reminder
-            await sendPaidDailySession(row.whatsapp, row.fullName, today, joinLink);
+            await sendPaidDailySession(toAiSensyPhone(row.whatsapp), row.fullName, today, joinLink);
             paidSent++;
 
             // Renewal reminder: 7 days before expiry
@@ -150,7 +155,7 @@ export async function GET(request: NextRequest) {
 
                 if (daysToExpiry > 0 && daysToExpiry <= 7) {
                     await sendPaymentReminder(
-                        row.whatsapp,
+                        toAiSensyPhone(row.whatsapp),
                         row.fullName,
                         row.endDate,
                         baseUrl

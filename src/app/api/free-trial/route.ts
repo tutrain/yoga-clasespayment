@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
         }
 
         const phone = `+91${whatsapp}`;
+        const aisensyPhone = `91${whatsapp}`; // AiSensy needs 91XXXXXXXXXX (no + sign)
 
         // Check for duplicate registration
         const memberCheck = await checkMemberStatus(phone);
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
         const joinLink = `${protocol}://${host}/join/${customLinkId}`;
 
         // Send WhatsApp welcome message (fire-and-forget)
-        sendFreeTrialWelcome(phone, fullName.trim(), startDate, endDate, joinLink)
+        sendFreeTrialWelcome(aisensyPhone, fullName.trim(), startDate, endDate, joinLink)
             .catch((err) =>
                 console.error("[FreeTrial] WhatsApp welcome failed:", err)
             );
