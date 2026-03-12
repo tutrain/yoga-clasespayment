@@ -126,8 +126,6 @@ export async function POST(request: NextRequest) {
         sendPaymentConfirmation(
           phone,
           registration.fullName,
-          orderId,
-          txnStatus.txnAmount,
           registration.plan,
           endDate,
           joinLink

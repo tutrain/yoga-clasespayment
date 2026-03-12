@@ -394,6 +394,44 @@ export async function deleteFreeTrialRow(rowIndex: number): Promise<void> {
   await deleteRow(TAB_FREE_TRIAL, rowIndex);
 }
 
+/**
+ * Get recently expired free trial members (expired within the last `withinDays` days).
+ * Used by the CRON to send Day 8–10 expired nudge messages.
+ */
+export async function getRecentlyExpiredTrials(
+  withinDays: number = 5
+): Promise<{ row: FreeTrialRow; rowIndex: number }[]> {
+  const rows = await getAllRows(TAB_FREE_TRIAL);
+  const results: { row: FreeTrialRow; rowIndex: number }[] = [];
+
+  const now = new Date();
+  const cutoffDate = new Date(now);
+  cutoffDate.setDate(cutoffDate.getDate() - withinDays);
+  const cutoff = cutoffDate.toISOString().split("T")[0]; // YYYY-MM-DD
+
+  for (let i = 0; i < rows.length; i++) {
+    const status = rows[i][5];
+    const endDate = rows[i][4] || "";
+    if (status === "Expired" && endDate >= cutoff) {
+      results.push({
+        row: {
+          timestamp: rows[i][0] || "",
+          fullName: rows[i][1] || "",
+          whatsapp: rows[i][2] || "",
+          startDate: rows[i][3] || "",
+          endDate,
+          status: "Expired",
+          customLinkId: rows[i][6] || "",
+          messagesSent: parseInt(rows[i][7] || "0", 10),
+          lastMessageDate: rows[i][8] || "",
+        },
+        rowIndex: i + 2,
+      });
+    }
+  }
+  return results;
+}
+
 // ============================================================
 // PaidMembers Tab
 // ============================================================

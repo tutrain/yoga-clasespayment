@@ -4,31 +4,50 @@
  * All WhatsApp message functions using AiSensy's Campaign API.
  * API Endpoint: https://backend.aisensy.com/campaign/t1/api/v2
  *
+ * 12 templates matching the handover document:
+ *   FREE TRIAL (8):  T1–T8
+ *   PAID (4):        T9–T12
+ *
  * IMPORTANT: Each function requires a corresponding "Live" API campaign
- * on the AiSensy dashboard with an approved template.
+ * on the AiSensy dashboard with an approved Meta template.
  */
 
 const AISENSY_API_URL = "https://backend.aisensy.com/campaign/t1/api/v2";
 const AISENSY_API_KEY = process.env.AISENSY_API_KEY || "";
 
-// Campaign names — configure in .env.local
-const CAMPAIGNS = {
-    paymentSuccess:
-        process.env.AISENSY_CAMPAIGN_PAYMENT_SUCCESS || "payment_success",
+// ============================================================
+// Template / Campaign Names — must match AiSensy dashboard
+// Configure via AISENSY_TEMPLATE_* env vars
+// ============================================================
+
+const TEMPLATES = {
+    // Free Trial (T1–T8)
     freeTrialWelcome:
-        process.env.AISENSY_CAMPAIGN_FREETRIAL_WELCOME || "welcome_freetrial",
-    dailySession:
-        process.env.AISENSY_CAMPAIGN_DAILY_SESSION || "daily_session_link",
-    midTrialNudge:
-        process.env.AISENSY_CAMPAIGN_MID_TRIAL_NUDGE || "mid_trial_nudge",
-    trialExpiryWarning:
-        process.env.AISENSY_CAMPAIGN_TRIAL_EXPIRY || "trial_expiry_warning",
-    trialExpired:
-        process.env.AISENSY_CAMPAIGN_TRIAL_EXPIRED || "trial_expired",
+        process.env.AISENSY_TEMPLATE_FREETRIAL_WELCOME || "yoga_freetrial_welcome",
+    freeTrialSchedule:
+        process.env.AISENSY_TEMPLATE_FREETRIAL_SCHEDULE || "yoga_freetrial_schedule",
+    freeTrialDaily:
+        process.env.AISENSY_TEMPLATE_FREETRIAL_DAILY || "yoga_freetrial_daily_reminder",
+    freeTrialMidNudge:
+        process.env.AISENSY_TEMPLATE_FREETRIAL_NUDGE || "yoga_freetrial_mid_nudge",
+    freeTrialUrgency:
+        process.env.AISENSY_TEMPLATE_FREETRIAL_URGENCY || "yoga_freetrial_urgency",
+    freeTrialLastDay:
+        process.env.AISENSY_TEMPLATE_FREETRIAL_LASTDAY || "yoga_freetrial_lastday",
+    freeTrialExpired:
+        process.env.AISENSY_TEMPLATE_FREETRIAL_EXPIRED || "yoga_freetrial_expired_d8",
+    freeTrialJoinedConfirm:
+        process.env.AISENSY_TEMPLATE_FREETRIAL_JOINED || "yoga_freetrial_joined_confirm",
+
+    // Paid Members (T9–T12)
     paidWelcome:
-        process.env.AISENSY_CAMPAIGN_PAID_WELCOME || "welcome_paid",
-    paidDailySession:
-        process.env.AISENSY_CAMPAIGN_PAID_DAILY || "paid_daily_session",
+        process.env.AISENSY_TEMPLATE_PAID_WELCOME || "yoga_paid_welcome",
+    paidDailyReminder:
+        process.env.AISENSY_TEMPLATE_PAID_DAILY || "yoga_paid_daily_reminder",
+    paidWeeklyInfo:
+        process.env.AISENSY_TEMPLATE_PAID_WEEKLY || "yoga_paid_weekly_info",
+    paidRenewalReminder:
+        process.env.AISENSY_TEMPLATE_PAID_RENEWAL || "yoga_paid_renewal_reminder",
 };
 
 // ============================================================
@@ -78,42 +97,40 @@ async function sendMessage(payload: AiSensyPayload): Promise<boolean> {
 }
 
 // ============================================================
-// Message Functions
+// Generic sendTemplate (handover doc spec)
 // ============================================================
 
 /**
- * Send payment confirmation to paid member.
- * Template params: name, plan, amount, orderId, endDate, joinLink
+ * Generic template sender — use for ad-hoc or new templates.
+ * Phone format: 91XXXXXXXXXX (country code + 10 digits, no + sign).
  */
-export async function sendPaymentConfirmation(
+export async function sendTemplate(
+    templateName: string,
     phone: string,
-    name: string,
-    orderId: string,
-    amount: string,
-    plan: string,
-    endDate?: string,
-    joinLink?: string
+    variables: string[],
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
-        campaignName: CAMPAIGNS.paidWelcome,
+        campaignName: templateName,
         destination: phone,
-        userName: name,
-        templateParams: [
-            name,
-            plan,
-            amount,
-            orderId,
-            endDate || "",
-            joinLink || "",
-        ],
+        userName: "Tayal Yoga Class",
+        templateParams: variables,
         source: "yoga-payment-portal",
+        media: imageUrl
+            ? { url: imageUrl, filename: "yoga_poster.jpeg" }
+            : undefined,
     });
 }
 
+// ============================================================
+// FREE TRIAL Templates (T1–T8)
+// ============================================================
+
 /**
- * Send free trial welcome message.
- * Template params: name, startDate, endDate, joinLink
+ * T1 — yoga_freetrial_welcome
+ * Trigger: Instantly on registration.
+ * Params: {{1}}=Name, {{2}}=StartDate, {{3}}=EndDate, {{4}}=PersonalJoinLink
  */
 export async function sendFreeTrialWelcome(
     phone: string,
@@ -124,7 +141,7 @@ export async function sendFreeTrialWelcome(
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
-        campaignName: CAMPAIGNS.freeTrialWelcome,
+        campaignName: TEMPLATES.freeTrialWelcome,
         destination: phone,
         userName: name,
         templateParams: [name, startDate, endDate, joinLink],
@@ -133,119 +150,234 @@ export async function sendFreeTrialWelcome(
 }
 
 /**
- * Send daily session reminder (free trial members).
- * Template params: name, joinLink
+ * T2 — yoga_freetrial_schedule
+ * Trigger: 3 minutes after T1.
+ * Params: {{1}}=StartDate, {{2}}=EndDate, {{3}}=PersonalJoinLink
+ */
+export async function sendFreeTrialSchedule(
+    phone: string,
+    name: string,
+    startDate: string,
+    endDate: string,
+    joinLink: string
+): Promise<boolean> {
+    return sendMessage({
+        apiKey: AISENSY_API_KEY,
+        campaignName: TEMPLATES.freeTrialSchedule,
+        destination: phone,
+        userName: name,
+        templateParams: [startDate, endDate, joinLink],
+        source: "yoga-payment-portal",
+    });
+}
+
+/**
+ * T3 — yoga_freetrial_daily_reminder
+ * Trigger: Day 1–7 — daily CRON at 4:30 PM IST.
+ * Params: {{1}}=Name, {{2}}=TodayDate, {{3}}=PersonalJoinLink
  */
 export async function sendDailySessionLink(
     phone: string,
     name: string,
+    todayDate: string,
     joinLink: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
-        campaignName: CAMPAIGNS.dailySession,
+        campaignName: TEMPLATES.freeTrialDaily,
         destination: phone,
         userName: name,
-        templateParams: [name, joinLink],
+        templateParams: [name, todayDate, joinLink],
         source: "yoga-daily-cron",
     });
 }
 
 /**
- * Send mid-trial nudge (Day 3 — purchase offer).
- * Template params: name, paymentLink
+ * T4 — yoga_freetrial_mid_nudge
+ * Trigger: Day 3 — alongside daily reminder.
+ * Params: {{1}}=Name, {{2}}=RegistrationURL
  */
 export async function sendMidTrialNudge(
     phone: string,
     name: string,
-    paymentLink: string
+    registrationUrl: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
-        campaignName: CAMPAIGNS.midTrialNudge,
+        campaignName: TEMPLATES.freeTrialMidNudge,
         destination: phone,
         userName: name,
-        templateParams: [name, paymentLink],
+        templateParams: [name, registrationUrl],
         source: "yoga-daily-cron",
     });
 }
 
 /**
- * Send trial expiry warning (Day 6 — trial ends tomorrow).
- * Template params: name, paymentLink
+ * T5 — yoga_freetrial_urgency
+ * Trigger: Day 6 — alongside daily reminder.
+ * Params: {{1}}=Name, {{2}}=RegistrationURL
  */
 export async function sendTrialExpiryWarning(
     phone: string,
     name: string,
-    paymentLink: string
+    registrationUrl: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
-        campaignName: CAMPAIGNS.trialExpiryWarning,
+        campaignName: TEMPLATES.freeTrialUrgency,
         destination: phone,
         userName: name,
-        templateParams: [name, paymentLink],
+        templateParams: [name, registrationUrl],
         source: "yoga-daily-cron",
     });
 }
 
 /**
- * Send trial expired notice (Day 8 — trial ended).
- * Template params: name, paymentLink
+ * T6 — yoga_freetrial_lastday
+ * Trigger: Day 7 — alongside daily reminder.
+ * Params: {{1}}=Name, {{2}}=PersonalJoinLink, {{3}}=RegistrationURL
+ */
+export async function sendFreeTrialLastDay(
+    phone: string,
+    name: string,
+    joinLink: string,
+    registrationUrl: string
+): Promise<boolean> {
+    return sendMessage({
+        apiKey: AISENSY_API_KEY,
+        campaignName: TEMPLATES.freeTrialLastDay,
+        destination: phone,
+        userName: name,
+        templateParams: [name, joinLink, registrationUrl],
+        source: "yoga-daily-cron",
+    });
+}
+
+/**
+ * T7 — yoga_freetrial_expired_d8
+ * Trigger: Day 8, 9, 10 — NO Zoom link.
+ * Params: {{1}}=Name, {{2}}=RegistrationURL
  */
 export async function sendTrialExpired(
     phone: string,
     name: string,
-    paymentLink: string
+    registrationUrl: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
-        campaignName: CAMPAIGNS.trialExpired,
+        campaignName: TEMPLATES.freeTrialExpired,
         destination: phone,
         userName: name,
-        templateParams: [name, paymentLink],
+        templateParams: [name, registrationUrl],
         source: "yoga-daily-cron",
     });
 }
 
 /**
- * Send daily session reminder for paid members.
- * Template params: name, joinLink
+ * T8 — yoga_freetrial_joined_confirm
+ * Trigger: After user joins a Zoom session.
+ * Params: {{1}}=Name
  */
-export async function sendPaidDailySession(
+export async function sendFreeTrialJoinedConfirm(
+    phone: string,
+    name: string
+): Promise<boolean> {
+    return sendMessage({
+        apiKey: AISENSY_API_KEY,
+        campaignName: TEMPLATES.freeTrialJoinedConfirm,
+        destination: phone,
+        userName: name,
+        templateParams: [name],
+        source: "yoga-payment-portal",
+    });
+}
+
+// ============================================================
+// PAID MEMBER Templates (T9–T12)
+// ============================================================
+
+/**
+ * T9 — yoga_paid_welcome
+ * Trigger: Immediately on successful payment.
+ * Params: {{1}}=Name, {{2}}=PlanName, {{3}}=EndDate, {{4}}=PersonalJoinLink
+ */
+export async function sendPaymentConfirmation(
     phone: string,
     name: string,
+    plan: string,
+    endDate: string,
     joinLink: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
-        campaignName: CAMPAIGNS.paidDailySession,
+        campaignName: TEMPLATES.paidWelcome,
         destination: phone,
         userName: name,
-        templateParams: [name, joinLink],
+        templateParams: [name, plan, endDate, joinLink],
+        source: "yoga-payment-portal",
+    });
+}
+
+/**
+ * T10 — yoga_paid_daily_reminder
+ * Trigger: Daily CRON at 4:30 PM IST for active paid members.
+ * Params: {{1}}=Name, {{2}}=TodayDate, {{3}}=PersonalJoinLink
+ */
+export async function sendPaidDailySession(
+    phone: string,
+    name: string,
+    todayDate: string,
+    joinLink: string
+): Promise<boolean> {
+    return sendMessage({
+        apiKey: AISENSY_API_KEY,
+        campaignName: TEMPLATES.paidDailyReminder,
+        destination: phone,
+        userName: name,
+        templateParams: [name, todayDate, joinLink],
         source: "yoga-daily-cron",
     });
 }
 
 /**
- * Send payment reminder (subscription renewal).
- * Template params: name, expiryDate, paymentLink
+ * T11 — yoga_paid_weekly_info
+ * Trigger: Weekly (every Saturday or Sunday).
+ * Params: {{1}}=Name, {{2}}=WeeklyTitle, {{3}}=WeeklyContent, {{4}}=PersonalJoinLink
+ */
+export async function sendPaidWeeklyInfo(
+    phone: string,
+    name: string,
+    weeklyTitle: string,
+    weeklyContent: string,
+    joinLink: string
+): Promise<boolean> {
+    return sendMessage({
+        apiKey: AISENSY_API_KEY,
+        campaignName: TEMPLATES.paidWeeklyInfo,
+        destination: phone,
+        userName: name,
+        templateParams: [name, weeklyTitle, weeklyContent, joinLink],
+        source: "yoga-daily-cron",
+    });
+}
+
+/**
+ * T12 — yoga_paid_renewal_reminder
+ * Trigger: 7 days before subscription expiry.
+ * Params: {{1}}=Name, {{2}}=ExpiryDate, {{3}}=RegistrationURL
  */
 export async function sendPaymentReminder(
     phone: string,
     name: string,
     expiryDate: string,
-    paymentLink: string
+    registrationUrl: string
 ): Promise<boolean> {
-    const campaignName =
-        process.env.AISENSY_CAMPAIGN_RENEWAL_REMINDER || "renewal_reminder";
-
     return sendMessage({
         apiKey: AISENSY_API_KEY,
-        campaignName,
+        campaignName: TEMPLATES.paidRenewalReminder,
         destination: phone,
         userName: name,
-        templateParams: [name, expiryDate, paymentLink],
+        templateParams: [name, expiryDate, registrationUrl],
         source: "yoga-daily-cron",
     });
 }
