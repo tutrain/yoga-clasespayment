@@ -130,7 +130,8 @@ export async function POST(request: NextRequest) {
           registration.fullName,
           registration.plan,
           endDate,
-          joinLink
+          joinLink,
+          process.env.IMAGE_WELCOME
         ).catch((err) =>
           console.error("[Callback] WhatsApp notification failed:", err)
         );

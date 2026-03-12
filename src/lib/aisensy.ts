@@ -137,7 +137,8 @@ export async function sendFreeTrialWelcome(
     name: string,
     startDate: string,
     endDate: string,
-    joinLink: string
+    joinLink: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -146,6 +147,7 @@ export async function sendFreeTrialWelcome(
         userName: name,
         templateParams: [name, startDate, endDate, joinLink],
         source: "yoga-payment-portal",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -159,7 +161,8 @@ export async function sendFreeTrialSchedule(
     name: string,
     startDate: string,
     endDate: string,
-    joinLink: string
+    joinLink: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -168,6 +171,7 @@ export async function sendFreeTrialSchedule(
         userName: name,
         templateParams: [startDate, endDate, joinLink],
         source: "yoga-payment-portal",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -180,7 +184,8 @@ export async function sendDailySessionLink(
     phone: string,
     name: string,
     todayDate: string,
-    joinLink: string
+    joinLink: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -189,6 +194,7 @@ export async function sendDailySessionLink(
         userName: name,
         templateParams: [name, todayDate, joinLink],
         source: "yoga-daily-cron",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -200,7 +206,8 @@ export async function sendDailySessionLink(
 export async function sendMidTrialNudge(
     phone: string,
     name: string,
-    registrationUrl: string
+    registrationUrl: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -209,6 +216,7 @@ export async function sendMidTrialNudge(
         userName: name,
         templateParams: [name, registrationUrl],
         source: "yoga-daily-cron",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -220,7 +228,8 @@ export async function sendMidTrialNudge(
 export async function sendTrialExpiryWarning(
     phone: string,
     name: string,
-    registrationUrl: string
+    registrationUrl: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -229,6 +238,7 @@ export async function sendTrialExpiryWarning(
         userName: name,
         templateParams: [name, registrationUrl],
         source: "yoga-daily-cron",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -241,7 +251,8 @@ export async function sendFreeTrialLastDay(
     phone: string,
     name: string,
     joinLink: string,
-    registrationUrl: string
+    registrationUrl: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -250,6 +261,7 @@ export async function sendFreeTrialLastDay(
         userName: name,
         templateParams: [name, joinLink, registrationUrl],
         source: "yoga-daily-cron",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -261,7 +273,8 @@ export async function sendFreeTrialLastDay(
 export async function sendTrialExpired(
     phone: string,
     name: string,
-    registrationUrl: string
+    registrationUrl: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -270,6 +283,7 @@ export async function sendTrialExpired(
         userName: name,
         templateParams: [name, registrationUrl],
         source: "yoga-daily-cron",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -306,7 +320,8 @@ export async function sendPaymentConfirmation(
     name: string,
     plan: string,
     endDate: string,
-    joinLink: string
+    joinLink: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -315,6 +330,7 @@ export async function sendPaymentConfirmation(
         userName: name,
         templateParams: [name, plan, endDate, joinLink],
         source: "yoga-payment-portal",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -327,7 +343,8 @@ export async function sendPaidDailySession(
     phone: string,
     name: string,
     todayDate: string,
-    joinLink: string
+    joinLink: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -336,6 +353,7 @@ export async function sendPaidDailySession(
         userName: name,
         templateParams: [name, todayDate, joinLink],
         source: "yoga-daily-cron",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }
 
@@ -370,7 +388,8 @@ export async function sendPaymentReminder(
     phone: string,
     name: string,
     expiryDate: string,
-    registrationUrl: string
+    registrationUrl: string,
+    imageUrl?: string
 ): Promise<boolean> {
     return sendMessage({
         apiKey: AISENSY_API_KEY,
@@ -379,5 +398,6 @@ export async function sendPaymentReminder(
         userName: name,
         templateParams: [name, expiryDate, registrationUrl],
         source: "yoga-daily-cron",
+        media: imageUrl ? { url: imageUrl, filename: "yoga_poster.jpeg" } : undefined,
     });
 }

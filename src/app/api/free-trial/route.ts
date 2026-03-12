@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         const joinLink = `${protocol}://${host}/join/${customLinkId}`;
 
         // Send WhatsApp welcome message (fire-and-forget)
-        sendFreeTrialWelcome(aisensyPhone, fullName.trim(), startDate, endDate, joinLink)
+        sendFreeTrialWelcome(aisensyPhone, fullName.trim(), startDate, endDate, joinLink, process.env.IMAGE_WELCOME)
             .catch((err) =>
                 console.error("[FreeTrial] WhatsApp welcome failed:", err)
             );
