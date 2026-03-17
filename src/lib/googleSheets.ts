@@ -61,6 +61,7 @@ export interface FreeTrialRow {
   customLinkId: string;
   messagesSent: number;
   lastMessageDate: string;
+  t8Sent: string; // "true" or "" — col J
 }
 
 export interface PaidMemberRow {
@@ -294,6 +295,7 @@ export async function appendFreeTrial(data: FreeTrialRow): Promise<number> {
     data.customLinkId,
     data.messagesSent,
     data.lastMessageDate,
+    data.t8Sent, // col J
   ]);
 }
 
@@ -315,6 +317,7 @@ export async function findFreeTrialByPhone(
           customLinkId: rows[i][6] || "",
           messagesSent: parseInt(rows[i][7] || "0", 10),
           lastMessageDate: rows[i][8] || "",
+          t8Sent: rows[i][9] || "",
         },
         rowIndex: i + 2, // +1 for header, +1 for 1-indexed
       };
@@ -323,23 +326,27 @@ export async function findFreeTrialByPhone(
   return null;
 }
 
-/** Find a free trial member by custom link ID */
+/** Find a free trial member by custom link ID — returns row + rowIndex for updates */
 export async function findFreeTrialByLinkId(
   linkId: string
-): Promise<FreeTrialRow | null> {
+): Promise<{ row: FreeTrialRow; rowIndex: number } | null> {
   const rows = await getAllRows(TAB_FREE_TRIAL);
-  for (const row of rows) {
-    if (row[6] === linkId) {
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][6] === linkId) {
       return {
-        timestamp: row[0] || "",
-        fullName: row[1] || "",
-        whatsapp: row[2] || "",
-        startDate: row[3] || "",
-        endDate: row[4] || "",
-        status: row[5] || "",
-        customLinkId: row[6] || "",
-        messagesSent: parseInt(row[7] || "0", 10),
-        lastMessageDate: row[8] || "",
+        row: {
+          timestamp: rows[i][0] || "",
+          fullName: rows[i][1] || "",
+          whatsapp: rows[i][2] || "",
+          startDate: rows[i][3] || "",
+          endDate: rows[i][4] || "",
+          status: rows[i][5] || "",
+          customLinkId: rows[i][6] || "",
+          messagesSent: parseInt(rows[i][7] || "0", 10),
+          lastMessageDate: rows[i][8] || "",
+          t8Sent: rows[i][9] || "",
+        },
+        rowIndex: i + 2,
       };
     }
   }
@@ -365,6 +372,7 @@ export async function getActiveFreeTrials(): Promise<
           customLinkId: rows[i][6] || "",
           messagesSent: parseInt(rows[i][7] || "0", 10),
           lastMessageDate: rows[i][8] || "",
+          t8Sent: rows[i][9] || "",
         },
         rowIndex: i + 2,
       });
@@ -376,6 +384,11 @@ export async function getActiveFreeTrials(): Promise<
 /** Update free trial status to Expired */
 export async function expireFreeTrial(rowIndex: number): Promise<void> {
   await updateCells(TAB_FREE_TRIAL, `F${rowIndex}`, [["Expired"]]);
+}
+
+/** Mark col J (T8Sent) = "true" for a free trial member */
+export async function updateT8Sent(rowIndex: number): Promise<void> {
+  await updateCells(TAB_FREE_TRIAL, `J${rowIndex}`, [["true"]]);
 }
 
 /** Update message tracking for a free trial member */
@@ -424,12 +437,18 @@ export async function getRecentlyExpiredTrials(
           customLinkId: rows[i][6] || "",
           messagesSent: parseInt(rows[i][7] || "0", 10),
           lastMessageDate: rows[i][8] || "",
+          t8Sent: rows[i][9] || "",
         },
         rowIndex: i + 2,
       });
     }
   }
   return results;
+}
+
+/** Update paid member status to Expired (col H) */
+export async function expirePaidMember(rowIndex: number): Promise<void> {
+  await updateCells(TAB_PAID, `H${rowIndex}`, [["Expired"]]);
 }
 
 // ============================================================

@@ -58,15 +58,19 @@ export async function POST(request: NextRequest) {
         const phone = registration.whatsapp;
         const planKey =
           PLAN_DURATION_MAP[registration.plan] || "1month";
-        const startDate = todayIST();
-        const endDate = calculateEndDate(new Date(), planKey);
+        // Start date = TOMORROW (class begins next day)
+        const tomorrowDate = new Date();
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const startDate = tomorrowDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        const endDate = calculateEndDate(tomorrowDate, planKey);
         const customLinkId = generateLinkId(registration.fullName);
         const timestamp = nowIST();
 
-        // Build join link
+        // Build join link using server-side BASE_URL (runtime env var — works in Cloud Run).
         const host = request.headers.get("host") || "localhost:3000";
-        const protocol = host.includes("localhost") ? "http" : "https";
-        const joinLink = `${protocol}://${host}/join/${customLinkId}`;
+        const fallbackBase = `http://${host}`;
+        const joinBaseUrl = process.env.BASE_URL || fallbackBase;
+        const joinLink = `${joinBaseUrl}/join/${customLinkId}`;
 
         // Check if this user was a free trial member (conversion!)
         let source = "Direct";
@@ -127,7 +131,7 @@ export async function POST(request: NextRequest) {
         const aisensyPhone = phone.replace(/^\+/, "");
         sendPaymentConfirmation(
           aisensyPhone,
-          registration.fullName,
+          registration.fullName + ' ji',
           registration.plan,
           endDate,
           joinLink,

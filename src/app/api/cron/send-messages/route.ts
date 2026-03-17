@@ -9,6 +9,7 @@ import {
 import {
     sendDailySessionLink,
     sendPaidDailySession,
+    sendPaidWeeklyInfo,
     sendMidTrialNudge,
     sendTrialExpiryWarning,
     sendFreeTrialLastDay,
@@ -25,29 +26,34 @@ function toAiSensyPhone(phone: string): string {
  * GET /api/cron/send-messages
  *
  * CRON job: Run daily at 4:30 PM IST (30 min before 5 PM session).
- * Sends daily session links to all active members via WhatsApp.
+ * Sends WhatsApp messages to all active members.
+ *
+ * Duplicate-send guard: if row.lastMessageDate === today, member is skipped.
  *
  * Free Trial Logic (by day number):
- * - Day 1–7: yoga_freetrial_daily_reminder (with Zoom link)
- * - Day 3:   also yoga_freetrial_mid_nudge (purchase offer)
- * - Day 6:   also yoga_freetrial_urgency (trial ends tomorrow)
- * - Day 7:   also yoga_freetrial_lastday (last free session)
- * - Day 8–10: yoga_freetrial_expired_d8 (NO Zoom link — conversion nudge)
+ * - Day 1–7: T3 yoga_freetrial_daily_reminder (with Zoom link)
+ * - Day 3:   also T4 yoga_freetrial_mid_nudge
+ * - Day 6:   also T5 yoga_freetrial_urgency
+ * - Day 7:   also T6 yoga_freetrial_lastday
+ * - Day 8–10: T7 yoga_freetrial_expired_d8 (NO Zoom link)
  *
  * Paid Member Logic:
- * - All active: yoga_paid_daily_reminder
- * - If daysToExpiry <= 7: also yoga_paid_renewal_reminder
+ * - Daily: T10 yoga_paid_daily_reminder
+ * - Every 7 days: T11 yoga_paid_weekly_info
+ * - 7 days before expiry: T12 yoga_paid_renewal_reminder
  *
- * Protected by CRON_SECRET header.
+ * Protected by x-cron-secret header.
  */
 export async function GET(request: NextRequest) {
-    // Verify CRON secret
     const cronSecret = process.env.CRON_SECRET;
-    const authHeader =
-        request.headers.get("authorization") ||
-        request.headers.get("x-cron-secret");
+    const incoming = request.headers.get("x-cron-secret");
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}` && authHeader !== cronSecret) {
+    console.log("[CRON Debug] incoming x-cron-secret:", JSON.stringify(incoming));
+    console.log("[CRON Debug] env CRON_SECRET:", JSON.stringify(cronSecret));
+    console.log("[CRON Debug] match:", incoming === cronSecret);
+
+    if (!incoming || incoming !== cronSecret) {
+        console.log("[CRON Debug] UNAUTHORIZED — mismatch or missing header");
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -56,8 +62,9 @@ export async function GET(request: NextRequest) {
             timeZone: "Asia/Kolkata",
         }); // YYYY-MM-DD
 
+        // BASE_URL is a server-side runtime env var — read at request time in Cloud Run.
         const baseUrl =
-            process.env.NEXT_PUBLIC_BASE_URL ||
+            process.env.BASE_URL ||
             `${request.headers.get("host")?.includes("localhost") ? "http" : "https"}://${request.headers.get("host") || "localhost:3000"}`;
 
         let freeTrialSent = 0;
@@ -65,6 +72,8 @@ export async function GET(request: NextRequest) {
         let nudgesSent = 0;
         let expiredSent = 0;
         let renewalSent = 0;
+        let weeklySent = 0;
+        let skipped = 0;
 
         // ====================
         // Free Trial Members (Active — Day 1–7)
@@ -72,40 +81,41 @@ export async function GET(request: NextRequest) {
         const activeTrials = await getActiveFreeTrials();
 
         for (const { row, rowIndex } of activeTrials) {
+            // Duplicate-send guard: skip if already messaged today
+            if (row.lastMessageDate === today) {
+                console.log(`[CRON] Already sent today, skipping: ${row.fullName}`);
+                skipped++;
+                continue;
+            }
+
             const joinLink = `${baseUrl}/join/${row.customLinkId}`;
 
-            // Calculate which day of the trial this is
             const startDate = new Date(row.startDate);
             const now = new Date();
             const dayNumber = Math.ceil(
                 (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
             );
 
-            // Day 1–7: Send daily session reminder (with Zoom link)
             if (dayNumber >= 1 && dayNumber <= 7) {
-                await sendDailySessionLink(toAiSensyPhone(row.whatsapp), row.fullName, today, joinLink, process.env.IMAGE_DAILY);
+                await sendDailySessionLink(toAiSensyPhone(row.whatsapp), row.fullName + ' ji', today, joinLink, process.env.IMAGE_DAILY);
                 freeTrialSent++;
             }
 
-            // Day 3: Mid-trial nudge (purchase offer)
             if (dayNumber === 3) {
-                await sendMidTrialNudge(toAiSensyPhone(row.whatsapp), row.fullName, baseUrl, process.env.IMAGE_FREE);
+                await sendMidTrialNudge(toAiSensyPhone(row.whatsapp), row.fullName + ' ji', baseUrl, process.env.IMAGE_FREE);
                 nudgesSent++;
             }
 
-            // Day 6: Urgency warning (trial ends tomorrow)
             if (dayNumber === 6) {
-                await sendTrialExpiryWarning(toAiSensyPhone(row.whatsapp), row.fullName, baseUrl, process.env.IMAGE_FREE);
+                await sendTrialExpiryWarning(toAiSensyPhone(row.whatsapp), row.fullName + ' ji', baseUrl, process.env.IMAGE_FREE);
                 nudgesSent++;
             }
 
-            // Day 7: Last day message (last free session + purchase CTA)
             if (dayNumber === 7) {
-                await sendFreeTrialLastDay(toAiSensyPhone(row.whatsapp), row.fullName, joinLink, baseUrl, process.env.IMAGE_LASTDAY);
+                await sendFreeTrialLastDay(toAiSensyPhone(row.whatsapp), row.fullName + ' ji', joinLink, baseUrl, process.env.IMAGE_LASTDAY);
                 nudgesSent++;
             }
 
-            // Update message count
             await updateFreeTrialMessageCount(
                 rowIndex,
                 row.messagesSent + 1,
@@ -114,21 +124,33 @@ export async function GET(request: NextRequest) {
         }
 
         // ====================
-        // Expired Trial Members (Day 8–10 — recently expired)
+        // Expired Trial Members (Day 8–10)
         // ====================
         const recentlyExpired = await getRecentlyExpiredTrials(5);
 
-        for (const { row } of recentlyExpired) {
-            // Calculate day number from start date
+        for (const { row, rowIndex } of recentlyExpired) {
+            // Duplicate-send guard
+            if (row.lastMessageDate === today) {
+                console.log(`[CRON] Already sent today (expired), skipping: ${row.fullName}`);
+                skipped++;
+                continue;
+            }
+
             const startDate = new Date(row.startDate);
             const now = new Date();
             const dayNumber = Math.ceil(
                 (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
             );
 
-            // Day 8–10: Send expired nudge (NO Zoom link)
             if (dayNumber >= 8 && dayNumber <= 10) {
-                await sendTrialExpired(toAiSensyPhone(row.whatsapp), row.fullName, baseUrl, process.env.IMAGE_WELCOME);
+                const sent = await sendTrialExpired(toAiSensyPhone(row.whatsapp), row.fullName + ' ji', baseUrl, process.env.IMAGE_WELCOME);
+                if (sent) {
+                    await updateFreeTrialMessageCount(
+                        rowIndex,
+                        row.messagesSent + 1,
+                        today
+                    );
+                }
                 expiredSent++;
             }
         }
@@ -139,13 +161,39 @@ export async function GET(request: NextRequest) {
         const activePaid = await getActivePaidMembers();
 
         for (const { row, rowIndex } of activePaid) {
+            // Duplicate-send guard
+            if (row.lastMessageDate === today) {
+                console.log(`[CRON] Already sent today (paid), skipping: ${row.fullName}`);
+                skipped++;
+                continue;
+            }
+
             const joinLink = `${baseUrl}/join/${row.customLinkId}`;
 
-            // Daily session reminder
-            await sendPaidDailySession(toAiSensyPhone(row.whatsapp), row.fullName, today, joinLink, process.env.IMAGE_DAILY);
+            // T10 — Daily session reminder
+            await sendPaidDailySession(toAiSensyPhone(row.whatsapp), row.fullName + ' ji', today, joinLink, process.env.IMAGE_DAILY);
             paidSent++;
 
-            // Renewal reminder: 7 days before expiry
+            // T11 — Weekly info (every 7 days from start date)
+            if (row.startDate) {
+                const startDate = new Date(row.startDate);
+                const now = new Date();
+                const daysSinceStart = Math.floor(
+                    (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+                );
+                if (daysSinceStart > 0 && daysSinceStart % 7 === 0) {
+                    await sendPaidWeeklyInfo(
+                        toAiSensyPhone(row.whatsapp),
+                        row.fullName + ' ji',
+                        "This Week's Yoga Focus 🧘",
+                        "Focus on breathing and mindfulness. Consistency is the key to transformation! Keep showing up 💪",
+                        joinLink
+                    );
+                    weeklySent++;
+                }
+            }
+
+            // T12 — Renewal reminder (7 days before expiry)
             if (row.endDate) {
                 const endDate = new Date(row.endDate);
                 const now = new Date();
@@ -156,7 +204,7 @@ export async function GET(request: NextRequest) {
                 if (daysToExpiry > 0 && daysToExpiry <= 7) {
                     await sendPaymentReminder(
                         toAiSensyPhone(row.whatsapp),
-                        row.fullName,
+                        row.fullName + ' ji',
                         row.endDate,
                         baseUrl,
                         process.env.IMAGE_WELCOME
@@ -165,7 +213,6 @@ export async function GET(request: NextRequest) {
                 }
             }
 
-            // Update message count
             await updatePaidMemberMessageCount(
                 rowIndex,
                 row.messagesSent + 1,
@@ -174,7 +221,8 @@ export async function GET(request: NextRequest) {
         }
 
         console.log(
-            `[SendMessages] Done. Free trial: ${freeTrialSent}, Expired nudges: ${expiredSent}, Paid: ${paidSent}, Nudges: ${nudgesSent}, Renewals: ${renewalSent}`
+            `[SendMessages] Done. Free trial: ${freeTrialSent}, Expired nudges: ${expiredSent}, ` +
+            `Paid: ${paidSent}, Weekly: ${weeklySent}, Nudges: ${nudgesSent}, Renewals: ${renewalSent}, Skipped: ${skipped}`
         );
 
         return NextResponse.json({
@@ -182,8 +230,10 @@ export async function GET(request: NextRequest) {
             freeTrialMessagesSent: freeTrialSent,
             expiredNudgesSent: expiredSent,
             paidMessagesSent: paidSent,
+            weeklyInfoSent: weeklySent,
             nudgesSent,
             renewalRemindersSent: renewalSent,
+            skipped,
             date: today,
         });
     } catch (error) {
