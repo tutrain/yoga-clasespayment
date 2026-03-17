@@ -29,13 +29,13 @@ const TEMPLATES = {
     freeTrialDaily:
         process.env.AISENSY_TEMPLATE_FREETRIAL_DAILY || "yoga_freetrial_daily_reminder",
     freeTrialMidNudge:
-        process.env.AISENSY_TEMPLATE_FREETRIAL_NUDGE || "yoga_freetrial_mid_nudge",
+        process.env.AISENSY_TEMPLATE_FREETRIAL_NUDGE || "yoga_freetrial_mid_nudge_v2",
     freeTrialUrgency:
-        process.env.AISENSY_TEMPLATE_FREETRIAL_URGENCY || "yoga_freetrial_urgency",
+        process.env.AISENSY_TEMPLATE_FREETRIAL_URGENCY || "yoga_freetrial_urgency_v2",
     freeTrialLastDay:
-        process.env.AISENSY_TEMPLATE_FREETRIAL_LASTDAY || "yoga_freetrial_lastday",
+        process.env.AISENSY_TEMPLATE_FREETRIAL_LASTDAY || "yoga_freetrial_lastday_v2",
     freeTrialExpired:
-        process.env.AISENSY_TEMPLATE_FREETRIAL_EXPIRED || "yoga_freetrial_expired_d8",
+        process.env.AISENSY_TEMPLATE_FREETRIAL_EXPIRED || "yoga_freetrial_expired_d8_v2",
     freeTrialJoinedConfirm:
         process.env.AISENSY_TEMPLATE_FREETRIAL_JOINED || "yoga_freetrial_joined_confirm",
 
@@ -47,7 +47,7 @@ const TEMPLATES = {
     paidWeeklyInfo:
         process.env.AISENSY_TEMPLATE_PAID_WEEKLY || "yoga_paid_weekly_info",
     paidRenewalReminder:
-        process.env.AISENSY_TEMPLATE_PAID_RENEWAL || "yoga_paid_renewal_reminder",
+        process.env.AISENSY_TEMPLATE_PAID_RENEWAL || "yoga_paid_renewal_reminder_v2",
 };
 
 // ============================================================

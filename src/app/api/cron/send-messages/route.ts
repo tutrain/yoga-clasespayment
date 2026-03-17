@@ -90,10 +90,11 @@ export async function GET(request: NextRequest) {
 
             const joinLink = `${baseUrl}/join/${row.customLinkId}`;
 
-            const startDate = new Date(row.startDate);
-            const now = new Date();
+            // Use IST dates for both to avoid timezone off-by-one
+            const istNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+            const istStart = new Date(row.startDate + "T00:00:00+05:30");
             const dayNumber = Math.ceil(
-                (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+                (istNow.getTime() - istStart.getTime()) / (1000 * 60 * 60 * 24)
             );
 
             if (dayNumber >= 1 && dayNumber <= 7) {
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
             }
 
             if (dayNumber === 7) {
-                await sendFreeTrialLastDay(toAiSensyPhone(row.whatsapp), row.fullName + ' ji', joinLink, baseUrl, process.env.IMAGE_LASTDAY);
+                await sendFreeTrialLastDay(toAiSensyPhone(row.whatsapp), row.fullName + ' ji', joinLink, baseUrl, process.env.IMAGE_WELCOME);
                 nudgesSent++;
             }
 
@@ -136,10 +137,10 @@ export async function GET(request: NextRequest) {
                 continue;
             }
 
-            const startDate = new Date(row.startDate);
-            const now = new Date();
+            const istNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+            const istStart = new Date(row.startDate + "T00:00:00+05:30");
             const dayNumber = Math.ceil(
-                (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+                (istNow.getTime() - istStart.getTime()) / (1000 * 60 * 60 * 24)
             );
 
             if (dayNumber >= 8 && dayNumber <= 10) {
@@ -176,10 +177,10 @@ export async function GET(request: NextRequest) {
 
             // T11 — Weekly info (every 7 days from start date)
             if (row.startDate) {
-                const startDate = new Date(row.startDate);
-                const now = new Date();
+                const istNowPaid = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+                const istStartPaid = new Date(row.startDate + "T00:00:00+05:30");
                 const daysSinceStart = Math.floor(
-                    (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+                    (istNowPaid.getTime() - istStartPaid.getTime()) / (1000 * 60 * 60 * 24)
                 );
                 if (daysSinceStart > 0 && daysSinceStart % 7 === 0) {
                     await sendPaidWeeklyInfo(
@@ -195,10 +196,10 @@ export async function GET(request: NextRequest) {
 
             // T12 — Renewal reminder (7 days before expiry)
             if (row.endDate) {
-                const endDate = new Date(row.endDate);
-                const now = new Date();
+                const istNowExp = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+                const istEnd = new Date(row.endDate + "T23:59:59+05:30");
                 const daysToExpiry = Math.ceil(
-                    (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+                    (istEnd.getTime() - istNowExp.getTime()) / (1000 * 60 * 60 * 24)
                 );
 
                 if (daysToExpiry > 0 && daysToExpiry <= 7) {
