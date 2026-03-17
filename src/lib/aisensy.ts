@@ -25,7 +25,7 @@ const TEMPLATES = {
     freeTrialWelcome:
         process.env.AISENSY_TEMPLATE_FREETRIAL_WELCOME || "yoga_freetrial_welcome",
     freeTrialSchedule:
-        process.env.AISENSY_TEMPLATE_FREETRIAL_SCHEDULE || "yoga_freetrial_schedule",
+        process.env.AISENSY_TEMPLATE_FREETRIAL_SCHEDULE || "yoga_freetrial_schedule_v2",
     freeTrialDaily:
         process.env.AISENSY_TEMPLATE_FREETRIAL_DAILY || "yoga_freetrial_daily_reminder",
     freeTrialMidNudge:
