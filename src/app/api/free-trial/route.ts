@@ -64,10 +64,10 @@ export async function POST(request: NextRequest) {
         const tomorrowDate = new Date();
         tomorrowDate.setDate(tomorrowDate.getDate() + 1);
         const startDate = tomorrowDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-        // End date = registration day (today) + 6 days = 7 total days inclusive
-        // e.g. register 12/03 → endDate 18/03 (12,13,14,15,16,17,18 = 7 days)
+        // End date = start date + 6 days = 7 total days inclusive
+        // e.g. register 18/03 → start 19/03, end 25/03 (19,20,21,22,23,24,25 = 7 days)
         const endDateObj = new Date();
-        endDateObj.setDate(endDateObj.getDate() + 6);
+        endDateObj.setDate(endDateObj.getDate() + 7);
         const endDate = endDateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
         const timestamp = nowIST();
         const today = todayIST();

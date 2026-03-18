@@ -77,7 +77,7 @@ export function calculateEndDate(
             break;
     }
 
-    return end.toISOString().split("T")[0]; // YYYY-MM-DD
+    return end.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // YYYY-MM-DD in IST
 }
 
 /**
