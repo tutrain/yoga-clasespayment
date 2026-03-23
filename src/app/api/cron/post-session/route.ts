@@ -4,21 +4,6 @@ import {
 } from "@/lib/googleSheets";
 import { sendFreeTrialJoinedConfirm } from "@/lib/aisensy";
 
-/**
- * GET /api/cron/post-session
- *
- * CRON job: Run daily at 6:15 PM IST (after the 5-6 PM session ends).
- * Sends T8 (yoga_freetrial_joined_confirm) — a warm "thank you for joining"
- * message to all ACTIVE free trial members.
- *
- * This replaces the webhook-based approach (AiSensy webhook requires PRO plan).
- * Instead of detecting who clicked "Confirm My Trial", we send an appreciation
- * message to all active trial members after every session.
- *
- * Protected by x-cron-secret header.
- */
-
-/** Strip + prefix from phone — AiSensy needs 91XXXXXXXXXX, not +91XXXXXXXXXX */
 function toAiSensyPhone(phone: string): string {
     return phone.replace(/^\+/, "");
 }
@@ -34,21 +19,35 @@ export async function GET(request: NextRequest) {
     try {
         const today = new Date().toLocaleDateString("en-CA", {
             timeZone: "Asia/Kolkata",
-        }); // YYYY-MM-DD
+        });
+
+        // TIME GUARD: Only send T8 between 6:00 PM and 7:00 PM IST
+        const istHour = new Date(
+            new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+        ).getHours();
+
+        if (istHour < 18 || istHour >= 19) {
+            console.log(
+                `[PostSession] Outside 6-7 PM IST window (hour: ${istHour}), aborting.`
+            );
+            return NextResponse.json({
+                success: false,
+                reason: `Outside send window. IST hour: ${istHour}. Only sends 6-7 PM.`,
+                date: today,
+            });
+        }
 
         const activeTrials = await getActiveFreeTrials();
         let sent = 0;
         let skipped = 0;
 
         for (const { row } of activeTrials) {
-            // Calculate day number to only send during active trial period (Day 1-7)
-            const startDate = new Date(row.startDate);
-            const now = new Date();
+            const istNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+            const istStart = new Date(row.startDate + "T00:00:00+05:30");
             const dayNumber = Math.ceil(
-                (now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+                (istNow.getTime() - istStart.getTime()) / (1000 * 60 * 60 * 24)
             );
 
-            // Only send T8 during active trial days (1-7)
             if (dayNumber >= 1 && dayNumber <= 7) {
                 const success = await sendFreeTrialJoinedConfirm(
                     toAiSensyPhone(row.whatsapp),
@@ -67,7 +66,7 @@ export async function GET(request: NextRequest) {
         }
 
         console.log(
-            `[PostSession] Done. Sent: ${sent}, Skipped: ${skipped}, Total active: ${activeTrials.length}`
+            `[PostSession] Done. Sent: ${sent}, Skipped: ${skipped}, Total: ${activeTrials.length}`
         );
 
         return NextResponse.json({
